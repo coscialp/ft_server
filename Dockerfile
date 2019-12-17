@@ -21,9 +21,15 @@ RUN wget https://wordpress.org/latest.tar.gz
 RUN tar -xvf latest.tar.gz && \
 	rm -f latest.tar.gz
 
+# Install Oh-My_Zsh
 RUN sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+# Install MySQL
+RUN service mysql start && \
+	mysql -e "CREATE DATABASE wordpress_db" && \
+	mysql -e "GRANT ALL ON wordpress_db.* TO 'wordpress_user'@'localhost' IDENTIFIED BY 'password'"
 
 # Ports
 EXPOSE 80
 
-CMD echo "Launching nginx" && nginx -g 'daemon off;'
+CMD service mysql restart && echo "Launching nginx" && nginx -g 'daemon off;'
