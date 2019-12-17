@@ -3,8 +3,6 @@ FROM debian:buster
 
 LABEL coscialp="coscialp@student.le-101.fr"
 
-WORKDIR /var/www/html
-
 # Install packages
 RUN apt-get update
 RUN apt-get install -y nginx
@@ -15,6 +13,11 @@ RUN apt-get install -y git
 RUN apt-get install -y default-mysql-server
 RUN apt-get install -y php php-mysql php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip php-fpm
 RUN apt-get install -y curl
+
+# # Nginx Conf
+# ADD ./srcs/nginx.conf /etc/nginx/nginx.conf
+
+WORKDIR /var/www/html
 
 # Install Wordpress
 RUN wget https://wordpress.org/latest.tar.gz
@@ -27,7 +30,7 @@ RUN sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/inst
 # Install MySQL
 RUN service mysql start && \
 	mysql -e "CREATE DATABASE wordpress_db" && \
-	mysql -e "GRANT ALL ON wordpress_db.* TO 'wordpress_user'@'localhost' IDENTIFIED BY 'password'"
+	mysql -e "GRANT ALL PRIVILEGES ON wordpress_db.* TO 'wordpress_user'@'localhost' IDENTIFIED BY 'password'"
 
 # WordPress Config
 ADD ./srcs/wp-config.php ./wordpress/wp-config.php
