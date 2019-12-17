@@ -29,6 +29,10 @@ RUN service mysql start && \
 	mysql -e "CREATE DATABASE wordpress_db" && \
 	mysql -e "GRANT ALL ON wordpress_db.* TO 'wordpress_user'@'localhost' IDENTIFIED BY 'password'"
 
+# WordPress Config
+ADD ./srcs/wp-config.php ./wordpress/wp-config.php
+RUN rm -f ./wordpress/wp-config-sample.php
+
 # Ports
 EXPOSE 80
 
