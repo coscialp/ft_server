@@ -14,8 +14,10 @@ RUN apt-get install -y default-mysql-server
 RUN apt-get install -y php php-mysql php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip php-fpm
 RUN apt-get install -y curl
 
-# # Nginx Conf
-# ADD ./srcs/nginx.conf /etc/nginx/nginx.conf
+# Index.html confi
+ADD ./srcs/index.nginx-debian.html /var/www/html/index.nginx-debian.html
+ADD ./srcs/phpmyadmin_logo.png /var/www/html/phpmyadmin_logo.png
+ADD ./srcs/wordpress_logo.png /var/www/html/wordpress_logo.png
 
 WORKDIR /var/www/html
 
