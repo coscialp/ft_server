@@ -3,42 +3,67 @@ FROM debian:buster
 
 LABEL coscialp="coscialp@student.le-101.fr"
 
-# Install packages
+# Downloading packages
 RUN apt-get update
+RUN apt-get upgrade
 RUN apt-get install -y nginx
 RUN apt-get install -y wget
-RUN apt-get install -y unzip
-RUN apt-get install -y zsh
-RUN apt-get install -y git
 RUN apt-get install -y default-mysql-server
-RUN apt-get install -y php php-mysql php-curl php-gd php-mbstring php-xml php-xmlrpc php-soap php-intl php-zip php-fpm
+RUN apt-get install -y php-fpm
+RUN apt-get install -y php-mbstring
+RUN apt-get install -y git
+RUN apt-get install -y php-mysql
+RUN apt-get install -y zsh
 RUN apt-get install -y curl
+RUN apt-get install -y vim
+RUN apt-get install -y default-mysql-client
 
-# Index.html confi
-ADD ./srcs/index.nginx-debian.html /var/www/html/index.nginx-debian.html
-ADD ./srcs/phpmyadmin_logo.png /var/www/html/phpmyadmin_logo.png
-ADD ./srcs/wordpress_logo.png /var/www/html/wordpress_logo.png
-
-WORKDIR /var/www/html
-
-# Install Wordpress
-RUN wget https://wordpress.org/latest.tar.gz
-RUN tar -xvf latest.tar.gz && \
-	rm -f latest.tar.gz
-
-# Install Oh-My_Zsh
-RUN sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-# Install MySQL
-RUN service mysql start && \
-	mysql -e "CREATE DATABASE wordpress_db" && \
-	mysql -e "GRANT ALL PRIVILEGES ON wordpress_db.* TO 'wordpress_user'@'localhost' IDENTIFIED BY 'password'"
-
-# WordPress Config
-ADD ./srcs/wp-config.php ./wordpress/wp-config.php
-RUN rm -f ./wordpress/wp-config-sample.php
-
-# Ports
 EXPOSE 80
 
-CMD service mysql restart && echo "Launching nginx" && nginx -g 'daemon off;'
+COPY	srcs/default-on /etc/nginx/sites-available/default
+
+WORKDIR	/var/www/html
+
+# Installing oh-my-zsh
+RUN sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+# Wordpress
+COPY srcs/wordpress ./wordpress/
+COPY srcs/wp-config.php wordpress/
+# COPY srcs/index.html ./
+COPY srcs/wordpress_logo.png ./
+COPY srcs/phpmyadmin_logo.png ./
+
+# PhpMyAdmin
+RUN wget https://files.phpmyadmin.net/phpMyAdmin/4.9.2/phpMyAdmin-4.9.2-all-languages.tar.xz
+
+RUN tar xf phpMyAdmin-4.9.2-all-languages.tar.xz && \
+	rm -f phpMyAdmin-4.9.2-all-languages.tar.xz && \
+	mv phpMyAdmin-4.9.2-all-languages ./phpmyadmin
+
+# Setup database
+RUN service mysql start && \
+	echo "CREATE DATABASE wordpress;" | mysql -u root && \
+	echo "ALTER USER root@localhost IDENTIFIED VIA mysql_native_password;"  | mysql -u root && \
+	echo "CREATE user user@localhost identified by 'password';" | mysql -u root && \
+	echo "SET PASSWORD = PASSWORD('password');" | mysql -u root && \
+	echo "grant all privileges on wordpress.* to user@localhost;" | mysql -u root && \
+	echo "flush privileges;" | mysql -u root
+
+#mkcert
+RUN mkdir ~/mkcert && \
+	cd ~/mkcert && \
+	wget https://github.com/FiloSottile/mkcert/releases/download/v1.1.2/mkcert-v1.1.2-linux-amd64 && \
+	mv mkcert-v1.1.2-linux-amd64 mkcert && \
+	chmod +x mkcert && \
+	./mkcert -install && \
+	./mkcert localhost && \
+	cp /root/mkcert/* /etc/nginx/
+
+COPY srcs/config.inc.php ./phpmyadmin/
+
+RUN chmod 660 /var/www/html/phpmyadmin/config.inc.php && chown -R www-data:www-data /var/www/html/phpmyadmin
+
+RUN chown www-data:www-data * -R && usermod -a -G www-data www-data
+
+CMD service mysql restart 2> /dev/null && echo "Launching nginx" && service php7.3-fpm start && nginx -g 'daemon off;'
